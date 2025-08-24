@@ -39,7 +39,8 @@ Be sure that directory is in your `PATH`.
 
 ---
 ## Screenshot
-<img width="948" height="333" alt="image" src="https://github.com/user-attachments/assets/b525e7e9-b5a5-4110-af7a-7effc3ae31ef" />
+<img width="954" height="332" alt="image" src="https://github.com/user-attachments/assets/80584caa-3560-4492-a1a6-20dd3c4d5e4f" />
+
 
 ### 🔧 Build from source
 
