@@ -38,6 +38,8 @@ This installs the binary to `~/.cargo/bin`.
 Be sure that directory is in your `PATH`.
 
 ---
+## Screenshot
+<img width="948" height="333" alt="image" src="https://github.com/user-attachments/assets/b525e7e9-b5a5-4110-af7a-7effc3ae31ef" />
 
 ### 🔧 Build from source
 
