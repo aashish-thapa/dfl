@@ -1,0 +1,8 @@
+[package]
+name = "dotm"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+duct = "0.13.6"
+dirs = "5.0.1"
