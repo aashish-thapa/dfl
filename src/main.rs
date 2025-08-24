@@ -1,7 +1,7 @@
 use std::env;
 use std::fs;
-use std::io::{self, Write};
-use std::path::{Path, PathBuf};
+use std::io::{self};
+use std::path::PathBuf;
 use std::os::unix::fs::symlink;
 use duct::cmd;
 use dirs;
