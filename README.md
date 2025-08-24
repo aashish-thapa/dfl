@@ -79,12 +79,31 @@ dfl add ~/.bashrc
 
 > Tip: Repeat `dfl add` for other files like `~/.zshrc`, `~/.gitconfig`, `~/.config/nvim/init.lua`, etc.
 
-### 3) Deploy on a New Machine
+### 3) Connect to a Remote
 
-Link everything from your `~/.dfl` repo into the home directory:
+To save your dotfiles to a remote repository like GitHub, first create an empty repository on GitHub, then add it to your dfl project.
 
 ```bash
-dfl link
+dfl remote add https://github.com/your-username/mydotfiles.git
+```
+
+### 4) Push and Pull Changes
+
+Now you can easily push your changes to the remote.
+
+```bash
+dfl push
+```
+
+### 5) Deploy on a New Machine
+
+To get the latest changes on a new machine, first clone your repository into ~/.dfl, and then pull and sync.
+
+```bash
+cd ~
+git clone https://github.com/your-username/mydotfiles.git .dfl
+dfl pull
+dfl sync
 ```
 
 (If your tool uses a different subcommand name like `deploy`, replace accordingly.)
