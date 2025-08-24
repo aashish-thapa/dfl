@@ -1,4 +1,4 @@
-````markdown
+
 # dfl: A Git-Powered Dotfile Manager
 
 [![Build](https://img.shields.io/badge/build-passing-brightgreen.svg)](#)
