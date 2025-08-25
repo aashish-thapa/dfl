@@ -1,4 +1,3 @@
-// main.rs
 use std::env;
 use std::fs;
 use std::io::{self};
@@ -26,7 +25,7 @@ fn main() -> io::Result<()> {
         }
         "add" => {
             if args.len() < 3 {
-                eprintln!("Error: 'add' command requires a file path.");
+                eprintln!("Error: 'add' command requires a file or directory path.");
                 print_usage(&args[0]);
                 return Ok(());
             }
@@ -71,6 +70,7 @@ fn message_box(title: &str, message: &str) {
 
 /// Handles the 'init' command.
 /// It creates the ~/.dfl directory and initializes a Git repository inside it.
+/// It also configures a default Git user name and email to prevent hanging.
 fn handle_init_command() -> io::Result<()> {
     message_box("Initializing dfl...", "Creating repository directory and initializing Git.");
 
@@ -90,7 +90,16 @@ fn handle_init_command() -> io::Result<()> {
     if let Err(e) = cmd!("git", "init").dir(&dfl_path).run() {
         return Err(io::Error::new(io::ErrorKind::Other, format!("Error initializing git repository: {}", e)));
     }
-    println!("✅ Git repository initialized.");
+    
+    // Configure a generic user name and email to prevent the `git commit` command from hanging.
+    if let Err(e) = cmd!("git", "config", "user.name", "Dotfile Manager").dir(&dfl_path).run() {
+        return Err(io::Error::new(io::ErrorKind::Other, format!("Error configuring git user name: {}", e)));
+    }
+    if let Err(e) = cmd!("git", "config", "user.email", "dfl-bot@example.com").dir(&dfl_path).run() {
+        return Err(io::Error::new(io::ErrorKind::Other, format!("Error configuring git user email: {}", e)));
+    }
+
+    println!("✅ Git repository initialized and configured.");
 
     message_box("dfl Initialized", &format!("You can now add your dotfiles. Your repository is at: {:?}", dfl_path));
 
@@ -98,41 +107,46 @@ fn handle_init_command() -> io::Result<()> {
 }
 
 /// Handles the 'add' command.
-/// It moves a file, creates a symlink, and automatically commits the change.
+/// It moves a file or directory, creates a symlink, and automatically commits the change.
 fn handle_add_command(file_path: &str) -> io::Result<()> {
-    println!("Adding file: {}", file_path);
+    println!("Adding file or directory: {}", file_path);
 
     let home_dir = dirs::home_dir().ok_or_else(|| io::Error::new(io::ErrorKind::Other, "Could not find home directory"))?;
     let dfl_path = home_dir.join(".dfl");
 
-    if !dfl_path.exists() {
-        message_box("Error", "dfl repository not found. Please run 'dfl init' first.");
-        return Ok(());
+    if !dfl_path.exists() || !dfl_path.join(".git").exists() {
+        message_box("Setting up", "Initializing dotfiles repository in ~/.dfl for you.");
+        handle_init_command()?;
     }
 
     let source_path = PathBuf::from(file_path);
-    let source_path_canonical = source_path.canonicalize()?;
-    let file_name = source_path_canonical.file_name().ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid file path"))?;
-    let destination_path = dfl_path.join(file_name);
-
-    if !source_path.exists() || !source_path.is_file() {
-        message_box("Error", &format!("Source file '{}' does not exist or is not a file.", file_path));
+    if !source_path.exists() {
+        message_box("Error", &format!("Source path '{}' does not exist.", file_path));
         return Ok(());
     }
 
-    // Move the file into the repository
-    if let Err(e) = fs::rename(&source_path_canonical, &destination_path) {
+    let file_name = source_path.file_name().ok_or_else(|| io::Error::new(io::ErrorKind::InvalidInput, "Invalid file path"))?;
+    let destination_path = dfl_path.join(file_name);
+
+    // Check if the destination already exists to avoid overwriting.
+    if destination_path.exists() {
+        message_box("Warning", &format!("A file or directory named '{}' already exists in the repository. Please move it manually or remove it first.", destination_path.display()));
+        return Ok(());
+    }
+
+    // Move the file or directory into the repository
+    if let Err(e) = fs::rename(&source_path, &destination_path) {
         return Err(io::Error::new(io::ErrorKind::Other, format!("Error moving file: {}", e)));
     }
-    println!("✅ Moved file to repository: {:?}", destination_path);
+    println!("✅ Moved file or directory to repository: {:?}", destination_path);
 
     // Create a symbolic link
-    if let Err(e) = symlink(&destination_path, &source_path_canonical) {
+    if let Err(e) = symlink(&destination_path, &source_path) {
         // If symlink creation fails, move the original file back to prevent data loss
-        let _ = fs::rename(&destination_path, &source_path_canonical);
+        let _ = fs::rename(&destination_path, &source_path);
         return Err(io::Error::new(io::ErrorKind::Other, format!("Error creating symlink: {}. Original file has been restored.", e)));
     }
-    println!("✅ Created symlink at: {:?}", source_path_canonical);
+    println!("✅ Created symlink at: {:?}", source_path);
 
     // Automatically stage and commit the change
     println!("Automatically committing changes...");
@@ -291,7 +305,7 @@ fn print_usage(program_name: &str) {
     println!("\nUsage: {} <command> [arguments]", program_name);
     println!("\nCommands:");
     println!("  init            Initializes a new dfl repository in ~/.dfl.");
-    println!("  add <file>      Moves a file to ~/.dfl and creates a symlink, then automatically commits the change.");
+    println!("  add <path>      Adds a file or directory. Auto-initializes ~/.dfl if missing, moves it into ~/.dfl, symlinks back, and commits.");
     println!("  sync            Creates symlinks for all dotfiles from the repository to your home directory.");
     println!("  remote add <url> Adds a remote URL (e.g., a GitHub repository) to your dfl repository.");
     println!("  push            Pushes your committed changes to the remote repository.");
